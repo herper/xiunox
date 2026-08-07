@@ -81,6 +81,7 @@ $static_version = $conf['static_version'];
 				<input type="hidden" name="next" value="<?php echo esc_attr($return_url);?>">
 
 				<div class="mb-3">
+					<label for="password" class="visually-hidden"><?php echo esc_html(lang('password'));?></label>
 					<div class="input-group admin-login-input">
 						<span class="input-group-text"><i class="ti ti-lock"></i></span>
 						<input type="password" class="form-control" placeholder="<?php echo esc_attr(lang('password'));?>" id="password" name="password" autocomplete="current-password" autofocus>
@@ -93,10 +94,13 @@ $static_version = $conf['static_version'];
 
 				<?php if(!empty($admin_show_captcha) && !empty($captcha_image)) { ?>
 				<div class="mb-3">
+					<label for="captcha" class="visually-hidden"><?php echo esc_html(lang('captcha_label'));?></label>
 					<div class="input-group admin-login-input">
 						<span class="input-group-text"><i class="ti ti-shield-check"></i></span>
 					<input type="text" class="form-control" name="captcha" id="captcha" maxlength="6" autocomplete="off" placeholder="<?php echo esc_attr(lang('captcha_label'));?>">
-					<img class="captcha-img" id="captcha-img" src="<?php echo esc_attr($captcha_image);?>" onclick="adminCaptchaRefresh()" style="cursor:pointer;height:40px;border-radius:0 .5rem .5rem 0;" title="<?php echo esc_attr(lang('click_to_refresh'));?>">
+					<button type="button" class="btn btn-outline-secondary admin-login-captcha-btn" id="captchaBtn" title="<?php echo esc_attr(lang('click_to_refresh'));?>" aria-label="<?php echo esc_attr(lang('click_to_refresh'));?>" onclick="adminCaptchaRefresh()">
+						<img class="captcha-img" id="captcha-img" src="<?php echo esc_attr($captcha_image);?>" alt="<?php echo esc_attr(lang('captcha_label'));?>" style="height:40px;display:block;">
+					</button>
 					</div>
 				</div>
 				<?php } ?>

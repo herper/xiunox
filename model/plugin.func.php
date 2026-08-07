@@ -39,6 +39,14 @@ function _atomic_write($file, $s) {
 
 function _include($srcfile) {
 	global $conf;
+	// 纵深防御：只编译应用目录（APP_PATH）内的源码文件
+	// 合法调用方均以 APP_PATH 常量拼接路径（含 ADMIN_PATH/XIUNOPHP_PATH），此处校验拒绝路径穿越/外部路径
+	$real_app = realpath(APP_PATH);
+	$real_src = realpath($srcfile);
+	if($real_app === FALSE || $real_src === FALSE || strncasecmp($real_src, $real_app.DIRECTORY_SEPARATOR, strlen($real_app) + 1) !== 0) {
+		xn_log("_include() refused path outside APP_PATH: $srcfile", 'include_security_error');
+		die('_include(): invalid source path');
+	}
 	$len = strlen(APP_PATH);
 	$tmpfile = $conf['tmp_path'].substr(str_replace('/', '_', $srcfile), $len);
 	$_need_compile = !is_file($tmpfile) || DEBUG > 1 || !empty($conf['cache_disable']);
