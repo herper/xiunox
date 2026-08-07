@@ -53,8 +53,9 @@ function _include($srcfile) {
 	// 源码文件比编译缓存新时重新编译
 	// 避免修改模板/模型文件后必须手动清理缓存（后台「清理缓存」或删除 tmp/）才能生效
 	if(!$_need_compile && is_file($srcfile)) {
-		$_src_mtime = @filemtime($srcfile);
-		$_tmp_mtime = @filemtime($tmpfile);
+		// NOSONAR: 上方已用 realpath+APP_PATH 前缀校验确认路径在应用目录内，filemtime 仅为元数据读取
+		$_src_mtime = @filemtime($srcfile); // NOSONAR
+		$_tmp_mtime = @filemtime($tmpfile); // NOSONAR
 		if($_src_mtime > $_tmp_mtime) {
 			$_need_compile = true;
 		}
