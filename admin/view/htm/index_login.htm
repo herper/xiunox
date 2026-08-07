@@ -5,7 +5,7 @@
 $static_version = $conf['static_version'];
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $conf['lang'];?>">
+<html lang="<?php echo esc_attr($conf['lang']);?>">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,9 +19,9 @@ $static_version = $conf['static_version'];
 
 	<!--{hook admin_header_bootstrap_before.htm}-->
 	<link href="../view/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-	<link rel="stylesheet" href="../view/css/theme.css<?php echo $static_version;?>">
+	<link rel="stylesheet" href="../view/css/theme.css<?php echo esc_attr($static_version);?>">
 	<!--{hook admin_header_bootstrap_after.htm}-->
-	<link rel="stylesheet" href="view/css/admin.css<?php echo $static_version;?>">
+	<link rel="stylesheet" href="view/css/admin.css<?php echo esc_attr($static_version);?>">
 	<link rel="stylesheet" href="../view/vendor/tabler-icons/tabler-icons.min.css">
 	<link rel="stylesheet" href="../view/vendor/tabler-icons/tabler-icons-filled.min.css">
 
@@ -30,8 +30,8 @@ $static_version = $conf['static_version'];
 	<script>
 	// 主题脚本必须内联同步执行，防止 FOUC（闪烁）
 	(function(){
-		var defaultTheme = <?php echo json_encode($conf['default_theme'] ?? 'light');?>;
-		var defaultBrand = <?php echo json_encode($conf['theme_brand'] ?? 'blue');?>;
+		var defaultTheme = <?php echo json_encode($conf['default_theme'] ?? 'light', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);?>;
+		var defaultBrand = <?php echo json_encode($conf['theme_brand'] ?? 'blue', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);?>;
 		var theme, themeColor;
 		try {
 			theme = localStorage.getItem('theme') || defaultTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -62,7 +62,7 @@ $static_version = $conf['static_version'];
 				<i class="ti ti-sun" id="loginThemeIconLight"></i>
 				<i class="ti ti-moon d-none" id="loginThemeIconDark"></i>
 			</button>
-			<a class="admin-login-link" href="../"><i class="ti ti-arrow-left"></i> <?php echo lang('admin_login_back_site');?></a>
+			<a class="admin-login-link" href="../"><i class="ti ti-arrow-left"></i> <?php echo esc_html(lang('admin_login_back_site'));?></a>
 		</div>
 	</header>
 
@@ -73,17 +73,17 @@ $static_version = $conf['static_version'];
 				<div class="admin-login-icon">
 					<i class="ti ti-shield-lock"></i>
 				</div>
-				<h1 class="admin-login-title"><?php echo lang('admin_login');?></h1>
+				<h1 class="admin-login-title"><?php echo esc_html(lang('admin_login'));?></h1>
 			</div>
 
-			<form action="<?php echo admin_login_url();?>" method="post" id="form">
+			<form action="<?php echo esc_attr(admin_login_url());?>" method="post" id="form">
 				<?php echo CsrfService::input(); ?>
-				<input type="hidden" name="next" value="<?php echo htmlspecialchars($return_url);?>">
+				<input type="hidden" name="next" value="<?php echo esc_attr($return_url);?>">
 
 				<div class="mb-3">
 					<div class="input-group admin-login-input">
 						<span class="input-group-text"><i class="ti ti-lock"></i></span>
-						<input type="password" class="form-control" placeholder="<?php echo lang('password');?>" id="password" name="password" autocomplete="current-password" autofocus>
+						<input type="password" class="form-control" placeholder="<?php echo esc_attr(lang('password'));?>" id="password" name="password" autocomplete="current-password" autofocus>
 						<button type="button" class="btn btn-outline-secondary admin-login-eye" id="passwordToggle" tabindex="-1" aria-label="Toggle password visibility">
 							<i class="ti ti-eye" id="passwordEye"></i>
 							<i class="ti ti-eye-off d-none" id="passwordEyeOff"></i>
@@ -95,14 +95,14 @@ $static_version = $conf['static_version'];
 				<div class="mb-3">
 					<div class="input-group admin-login-input">
 						<span class="input-group-text"><i class="ti ti-shield-check"></i></span>
-						<input type="text" class="form-control" name="captcha" id="captcha" maxlength="6" autocomplete="off" placeholder="<?php echo lang('captcha_label');?>">
-						<img class="captcha-img" id="captcha-img" src="<?php echo $captcha_image;?>" onclick="adminCaptchaRefresh()" style="cursor:pointer;height:40px;border-radius:0 .5rem .5rem 0;" title="<?php echo lang('click_to_refresh');?>">
+					<input type="text" class="form-control" name="captcha" id="captcha" maxlength="6" autocomplete="off" placeholder="<?php echo esc_attr(lang('captcha_label'));?>">
+					<img class="captcha-img" id="captcha-img" src="<?php echo esc_attr($captcha_image);?>" onclick="adminCaptchaRefresh()" style="cursor:pointer;height:40px;border-radius:0 .5rem .5rem 0;" title="<?php echo esc_attr(lang('click_to_refresh'));?>">
 					</div>
 				</div>
 				<?php } ?>
 
-				<button type="submit" class="btn btn-primary w-100 admin-login-submit" id="submit" data-loading-text="<?php echo lang('submiting');?>...">
-					<span id="submitText"><?php echo lang('login');?></span>
+				<button type="submit" class="btn btn-primary w-100 admin-login-submit" id="submit" data-loading-text="<?php echo esc_attr(lang('submiting'));?>...">
+					<span id="submitText"><?php echo esc_html(lang('login'));?></span>
 				</button>
 			</form>
 
@@ -243,7 +243,7 @@ function adminCaptchaRefresh() {
 	var img = document.getElementById('captcha-img');
 	if(!img) return;
 	ajax({
-		url: '<?php echo admin_login_url();?>?captcha_refresh=1',
+		url: '<?php echo esc_js(admin_login_url());?>?captcha_refresh=1',
 		type: 'GET',
 		dataType: 'text',
 		success: function(r) {
@@ -273,12 +273,12 @@ function startCountdown(seconds) {
 	btn.disabled = true;
 	var updateBtn = function() {
 		if(seconds > 0) {
-			if (jsubmitText) jsubmitText.textContent = '<?php echo lang('submiting');?>... ' + seconds + 's';
+			if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('submiting'));?>... ' + seconds + 's';
 			seconds--;
 			setTimeout(updateBtn, 1000);
 		} else {
 			btn.disabled = false;
-			if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>';
+			if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>';
 		}
 	};
 	updateBtn();
@@ -333,7 +333,7 @@ function startCountdown(seconds) {
 jform.addEventListener('submit', function(e) {
 	e.preventDefault();
 	jsubmit.disabled = true;
-	if (jsubmitText) jsubmitText.textContent = '<?php echo lang('submiting');?>...';
+	if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('submiting'));?>...';
 	var postdata = new FormData(jform);
 	// 用 ajax 获取完整响应（含 wait 字段用于倒计时）
 	ajax({
@@ -342,10 +342,10 @@ jform.addEventListener('submit', function(e) {
 		data: postdata,
 		dataType: 'text',
 		success: function(r) {
-			if(!r) { showToast('Server Response Empty!', 'error'); jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>'; return; }
+			if(!r) { showToast('Server Response Empty!', 'error'); jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>'; return; }
 			var s;
 			try { s = JSON.parse(r); } catch(e) { s = null; }
-			if(!s || s.code === undefined) { showToast('Server Response Not JSON', 'error'); jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>'; return; }
+			if(!s || s.code === undefined) { showToast('Server Response Not JSON', 'error'); jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>'; return; }
 			var code = s.code;
 			var message = s.message;
 			if(code == 0) {
@@ -357,20 +357,20 @@ jform.addEventListener('submit', function(e) {
 				showToast(message, 'error');
 				var wait = parseInt(s.wait) || 0;
 				if(wait > 0) { startCountdown(wait); }
-				else { jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>'; }
+				else { jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>'; }
 			} else if(code == 'password' || code == 'captcha') {
 				showToast(message, 'error');
 				if(code == 'captcha') { adminCaptchaRefresh(); }
 				else { if (jpassword) jpassword.focus(); }
-				jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>';
+				jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>';
 			} else {
 				showToast(message, 'error');
-				jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>';
+				jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>';
 			}
 		},
 		error: function() {
 			showToast('Network error', 'error');
-			jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo lang('login');?>';
+			jsubmit.disabled = false; if (jsubmitText) jsubmitText.textContent = '<?php echo esc_js(lang('login'));?>';
 		}
 	});
 });
