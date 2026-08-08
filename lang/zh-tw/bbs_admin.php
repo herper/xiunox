@@ -2238,5 +2238,3 @@ return array(
 	'plugin_disable_confirm'=>'確認禁用插件：{name}',
 	'plugin_unstall_confirm'=>'確認卸載插件：{name}（此操作不可恢復，插件數據將被刪除）',
 );
-
-?>

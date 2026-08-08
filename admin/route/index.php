@@ -1,6 +1,6 @@
 <?php
 
-!defined('DEBUG') AND exit('Access Denied.');
+!defined('DEBUG') && exit('Access Denied.');
 
 $action = param(1);
 
@@ -15,11 +15,11 @@ if($action == 'login') {
 	$admin_captcha_threshold = 3;
 	$admin_captcha_window = isset($conf['login_ban_duration']) ? intval($conf['login_ban_duration']) : 900;
 	$admin_captcha_cutoff = $time - $admin_captcha_window;
-	$admin_show_captcha = FALSE;
+	$admin_show_captcha = false;
 	if(function_exists('db_check_table_exists') && db_check_table_exists('user_login_log')) {
 		$admin_fail_count = db_count('user_login_log', array('ip'=>intval($longip), 'success'=>0, 'time'=>array('>'=>$admin_captcha_cutoff)));
 		if($admin_fail_count >= $admin_captcha_threshold) {
-			$admin_show_captcha = TRUE;
+			$admin_show_captcha = true;
 		}
 	}
 
@@ -30,7 +30,7 @@ if($action == 'login') {
 		// AJAX 刷新验证码
 		if(param('captcha_refresh')) {
 			include_once APP_PATH . 'lib/security/CaptchaService.php';
-			$result = CaptchaService::generate('login', TRUE);
+			$result = CaptchaService::generate('login', true);
 			header('Content-Type: application/json; charset=utf-8');
 			if($result) {
 				echo json_encode(array('code'=>0, 'image'=>$result['image'], 'expires_in'=>CaptchaService::CAPTCHA_EXPIRE));
@@ -44,23 +44,23 @@ if($action == 'login') {
 
 		// 登录后返回原页面：return_url 来自 admin_token_check 注入或 token 失效 303 跳转的 query
 		// param 默认 htmlsafe 会破坏 URL 中的 &，关闭 htmlspecialchars 保留原始 URL
-		$return_url = param('return_url', '', FALSE);
+		$return_url = param('return_url', '', false);
 
 		// 生成验证码图片（base64），传给模板
 		$captcha_image = '';
 		$captcha_expires_in = 0;
 		if($admin_show_captcha) {
 			include_once APP_PATH . 'lib/security/CaptchaService.php';
-			$result = CaptchaService::generate('login', TRUE);
+			$result = CaptchaService::generate('login', true);
 			if($result) {
 				$captcha_image = $result['image'];
 				$captcha_expires_in = CaptchaService::CAPTCHA_EXPIRE;
 			}
 		}
 
-		include _include(ADMIN_PATH."view/htm/index_login.htm");
+		include_once _include(ADMIN_PATH."view/htm/index_login.htm");
 
-	} else if($method == 'POST') {
+	} elseif($method == 'POST') {
 
 		// hook admin_index_login_post_start.php
 
@@ -82,7 +82,7 @@ if($action == 'login') {
 		// 直接校验 session，绕过 CaptchaService::verify 的 is_enabled 检查
 		// （后台验证码按失败次数触发，不受验证码配置开关控制）
 		if($admin_show_captcha) {
-			$captcha_input = param('captcha', '', FALSE);
+			$captcha_input = param('captcha', '', false);
 			if(empty($captcha_input)) {
 				message('captcha', lang('please_input_captcha'));
 			}
@@ -108,16 +108,16 @@ if($action == 'login') {
 		LoginSecurityService::checkIpBan($longip);
 		LoginSecurityService::checkBan($user['uid']);
 
-		$password = param('password', '', FALSE);
+		$password = param('password', '', false);
 
 		if(!user_login_verify($password, $user)) {
 			xn_log('password error. uid:'.$user['uid'], 'admin_login_error');
-			LoginSecurityService::recordAttempt($user['uid'], FALSE, $longip, $_SERVER['HTTP_USER_AGENT']);
+			LoginSecurityService::recordAttempt($user['uid'], false, $longip, $_SERVER['HTTP_USER_AGENT']);
 			message('password', lang('username_or_password_incorrect'));
 		}
 
 		// 登录成功，清除该用户的失败计数
-		LoginSecurityService::recordAttempt($user['uid'], TRUE, $longip, $_SERVER['HTTP_USER_AGENT']);
+		LoginSecurityService::recordAttempt($user['uid'], true, $longip, $_SERVER['HTTP_USER_AGENT']);
 
 		// 防止 Session 固定攻击
 		session_regenerate_id(true);
@@ -296,7 +296,7 @@ if($action == 'login') {
 
 	// hook admin_index_empty_end.php
 	
-	include _include(ADMIN_PATH.'view/htm/index.htm');
+	include_once _include(ADMIN_PATH.'view/htm/index.htm');
 
 }
 
@@ -316,4 +316,3 @@ function get_last_version($stat) {
 	}
 }
 
-?>

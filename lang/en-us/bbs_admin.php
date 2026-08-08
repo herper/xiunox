@@ -2251,5 +2251,3 @@ return array(
 	'plugin_disable_confirm'=>'Confirm disable plugin: {name}',
 	'plugin_unstall_confirm'=>'Confirm uninstall plugin: {name} (this action is irreversible, plugin data will be deleted)',
 );
-
-?>
