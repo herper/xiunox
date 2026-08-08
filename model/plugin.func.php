@@ -5,18 +5,18 @@
 $plugin_paths = array();
 $plugins = array();
 
-// todo: 对路径进行处理 include _include(APP_PATH.'view/htm/header.inc.htm');
+// 路径处理：源文件路径统一经 _include() 校验后编译（见 _include 定义）
 $g_include_slot_kv = array();
 
 // 原子写入：先写临时文件再 rename，避免并发时其他进程读到截断后的空文件
 function _atomic_write($file, $s) {
 	$dir = dirname($file);
 	if(!is_dir($dir)) {
-		mkdir($dir, 0777, TRUE);
+		mkdir($dir, 0777, true);
 	}
-	$tmp = $file . '.' . substr(md5($s . mt_rand()), 0, 8) . '.tmp';
+	$tmp = $file . '.' . substr(bin2hex(random_bytes(4)), 0, 8) . '.tmp';
 	$r = file_put_contents($tmp, $s, LOCK_EX);
-	if($r !== FALSE) {
+	if($r !== false) {
 		// Windows 下 rename() 不能覆盖已存在的文件，需先删除
 		if(DIRECTORY_SEPARATOR === '\\' && is_file($file)) {
 			@unlink($file);
@@ -43,7 +43,7 @@ function _include($srcfile) {
 	// 合法调用方均以 APP_PATH 常量拼接路径（含 ADMIN_PATH/XIUNOPHP_PATH），此处校验拒绝路径穿越/外部路径
 	$real_app = realpath(APP_PATH);
 	$real_src = realpath($srcfile);
-	if($real_app === FALSE || $real_src === FALSE || strncasecmp($real_src, $real_app.DIRECTORY_SEPARATOR, strlen($real_app) + 1) !== 0) {
+	if($real_app === false || $real_src === false || strncasecmp($real_src, $real_app.DIRECTORY_SEPARATOR, strlen($real_app) + 1) !== 0) {
 		xn_log("_include() refused path outside APP_PATH: $srcfile", 'include_security_error');
 		die('_include(): invalid source path');
 	}
@@ -72,10 +72,13 @@ function _include($srcfile) {
 		}
 
 		// 支持 <template> <slot>
+		global $g_include_slot_kv;
 		$g_include_slot_kv = array();
 		for($i = 0; $i < 10; $i++) {
 			$s = preg_replace_callback('#<template\sinclude="(.*?)">(.*?)</template>#is', '_include_callback_1', $s);
-			if(strpos($s, '<template') === FALSE) break;
+			if(strpos($s, '<template') === false) {
+				break;
+			}
 		}
 		_atomic_write($tmpfile, $s);
 
@@ -160,9 +163,13 @@ function plugin_init() {
 		foreach($plugin_paths as $path) {
 			$dir = file_name($path);
 			$conffile = $path."/conf.json";
-			if(!is_file($conffile)) continue;
+			if(!is_file($conffile)) {
+				continue;
+			}
 			$arr = xn_json_decode(file_get_contents($conffile));
-			if(empty($arr)) continue;
+			if(empty($arr)) {
+				continue;
+			}
 			// ponytail: 彻底丢弃 conf.json 的 enable/installed——这俩字段是运行时状态，唯一权威源为 db bbs_plugin 表
 			// 存量 conf.json 带 enable=1/installed=1 是脏数据，不 unset 会在 db 异常时残留导致禁用的插件被误判为启用
 			unset($arr['enable'], $arr['installed']);
@@ -188,12 +195,12 @@ function plugin_init() {
 	// （不回退 conf.json 脏数据，不调 plugin_db_init 避免 fatal 导致后台白屏）
 	if (!empty($plugins)) {
 		$db_list = array();
-		$db_available = TRUE;
+		$db_available = true;
 		try {
 			$db_list = plugin_db_get_all();
 		} catch (\Throwable $e) {
 			$db_list = array();
-			$db_available = FALSE;
+			$db_available = false;
 		}
 		if ($db_available) {
 			foreach ($plugins as $dir => $unused) {
@@ -279,7 +286,9 @@ function plugin_dependencies($dir) {
  */
 function plugin_version_satisfies($version, $constraint) {
 	$constraint = trim($constraint);
-	if($constraint === '' || $constraint === '*') return true;
+	if($constraint === '' || $constraint === '*') {
+			return true;
+		}
 	
 	// 解析约束：操作符 + 版本号
 	if(preg_match('/^(>=|<=|>|<|=|\^|~)?(\d+(?:\.\d+){0,2})$/', $constraint, $m)) {
@@ -295,14 +304,16 @@ function plugin_version_satisfies($version, $constraint) {
 			case '^':  // ^1.0.2 = >=1.0.2 && <5.0.0（兼容主版本）
 				$parts = explode('.', $required);
 				$major = $parts[0];
-				return version_compare($version, $required, '>=') 
+				return version_compare($version, $required, '>=')
 					&& version_compare($version, ($major+1).'.0.0', '<');
 			case '~':  // ~1.0.2 = >=1.0.2 && <4.6.0（兼容次版本）
 				$parts = explode('.', $required);
 				$major = $parts[0];
 				$minor = isset($parts[1]) ? $parts[1] : 0;
-				return version_compare($version, $required, '>=') 
+				return version_compare($version, $required, '>=')
 					&& version_compare($version, $major.'.'.($minor+1).'.0', '<');
+			default:
+				break;
 		}
 	}
 	
@@ -350,17 +361,25 @@ function plugin_by_dependencies($dir) {
 function plugin_find_conflicts($dir) {
 	global $plugins;
 
-	if(!isset($plugins[$dir])) return array();
+	if(!isset($plugins[$dir])) {
+			return array();
+		}
 
 	// 计算自身的互斥分组标识：主题用固定 __theme__，其他用第二段及以后拼接的功能标识
 	$category = plugin_mutex_category($dir);
-	if($category === '') return array();
+	if($category === '') {
+			return array();
+		}
 
 	$conflicts = array();
 	foreach($plugins as $_dir => $_plugin) {
-		if($dir === $_dir) continue;
+		if($dir === $_dir) {
+				continue;
+			}
 		// 仅已安装的插件才会被自动禁用（避免列出从未安装的插件造成困惑）
-		if(empty($_plugin['installed'])) continue;
+		if(empty($_plugin['installed'])) {
+				continue;
+			}
 
 		$_category = plugin_mutex_category($_dir);
 
@@ -387,10 +406,14 @@ function plugin_find_conflicts($dir) {
  */
 function plugin_mutex_category($dir) {
 	$parts = explode('_', $dir);
-	if(!isset($parts[1]) || $parts[1] === '') return '';
+	if(!isset($parts[1]) || $parts[1] === '') {
+			return '';
+		}
 
 	// 主题类：第二段为 theme，无论后续有几段变体，统一归入主题互斥组
-	if($parts[1] === 'theme') return '__theme__';
+	if($parts[1] === 'theme') {
+			return '__theme__';
+		}
 
 	// 非主题：第二段及以后拼接为功能标识
 	// 例：xnx_checkin → checkin；xnx_ad_selfbuy → ad_selfbuy；xnx_checkin_pro → checkin_pro
@@ -401,13 +424,10 @@ function plugin_enable($dir) {
 	global $plugins;
 
 	if(!isset($plugins[$dir])) {
-		return FALSE;
+		return false;
 	}
 
 	$plugins[$dir]['enable'] = 1;
-
-	//plugin_overwrite($dir, 'install');
-	//plugin_hook($dir, 'install');
 
 	// 写入数据库（db 为权威，conf.json 不再被运行时改写）
 	plugin_db_init($dir, $plugins[$dir]);
@@ -415,14 +435,14 @@ function plugin_enable($dir) {
 
 	plugin_clear_tmp_dir();
 
-	return TRUE;
+	return true;
 }
 
 // 清空插件生命周期相关缓存：tmp/ 编译缓存 + 整站数据缓存 + OPcache
 // 调用位置：install/enable/disable/uninstall 后，确保新启停的插件状态在所有缓存层即时生效
 function plugin_clear_tmp_dir() {
 	global $conf;
-	rmdir_recusive($conf['tmp_path'], TRUE);
+	rmdir_recusive($conf['tmp_path'], true);
 	// 整站数据缓存 + OPcache 清理
 	// - 数据缓存：Redis/Memcached 驱动下尤其必要（file 驱动下 tmp/cache 已被上面 rmdir_recusive 删除）
 	// - OPcache：validate_timestamps=1 + revalidate_freq 较大或多 worker 时，旧字节码不会自动重载
@@ -445,13 +465,10 @@ function plugin_disable($dir) {
 	global $plugins;
 
 	if(!isset($plugins[$dir])) {
-		return FALSE;
+		return false;
 	}
 
 	$plugins[$dir]['enable'] = 0;
-
-	//plugin_overwrite($dir, 'unstall');
-	//plugin_hook($dir, 'unstall');
 
 	// 写入数据库（db 为权威，conf.json 不再被运行时改写）
 	plugin_db_init($dir, $plugins[$dir]);
@@ -459,7 +476,7 @@ function plugin_disable($dir) {
 
 	plugin_clear_tmp_dir();
 
-	return TRUE;
+	return true;
 }
 
 // 安装所有的本地插件
@@ -490,7 +507,7 @@ function plugin_install($dir) {
 	global $plugins, $conf;
 
 	if(!isset($plugins[$dir])) {
-		return FALSE;
+		return false;
 	}
 
 	$plugins[$dir]['installed'] = 1;
@@ -511,7 +528,7 @@ function plugin_install($dir) {
 
 	plugin_clear_tmp_dir();
 
-	return TRUE;
+	return true;
 }
 
 // copy from plugin_install 修改
@@ -519,7 +536,7 @@ function plugin_unstall($dir) {
 	global $plugins;
 
 	if(!isset($plugins[$dir])) {
-		return TRUE;
+		return true;
 	}
 
 	$plugins[$dir]['installed'] = 0;
@@ -538,7 +555,7 @@ function plugin_unstall($dir) {
 
 	plugin_clear_tmp_dir();
 
-	return TRUE;
+	return true;
 }
 
 function plugin_paths_enabled() {
@@ -546,7 +563,9 @@ function plugin_paths_enabled() {
 	if(empty($return_paths)) {
 		$return_paths = array();
 		$plugin_paths = glob(APP_PATH.'plugin/*', GLOB_ONLYDIR);
-		if(empty($plugin_paths)) return array();
+		if(empty($plugin_paths)) {
+			return array();
+		}
 
 		// db 为唯一权威：批量取 enable/installed
 		// ponytail: 彻底不读 conf.json 的 enable/installed——这俩字段是运行时状态，唯一权威源为 db bbs_plugin 表
@@ -560,15 +579,21 @@ function plugin_paths_enabled() {
 
 		foreach($plugin_paths as $path) {
 			$conffile = $path."/conf.json";
-			if(!is_file($conffile)) continue;
+			if(!is_file($conffile)) {
+				continue;
+			}
 			$pconf = xn_json_decode(file_get_contents($conffile));
-			if(empty($pconf)) continue;
+			if(empty($pconf)) {
+				continue;
+			}
 
 			$dir = file_name($path);
 			// 只以 db 为准：db 有记录读 db，无记录默认未安装未启用，不读 conf.json 的 enable/installed
 			$enable    = !empty($db_list[$dir]['enable']);
 			$installed = !empty($db_list[$dir]['installed']);
-			if(!$enable || !$installed) continue;
+			if(!$enable || !$installed) {
+				continue;
+			}
 			$pconf['enable'] = 1;
 			$pconf['installed'] = 1;
 			$return_paths[$path] = $pconf;
@@ -582,8 +607,7 @@ function plugin_compile_srcfile($srcfile) {
 	global $conf;
 	// 判断是否开启插件
 	if(!empty($conf['disabled_plugin'])) {
-		$s = file_get_contents($srcfile);
-		return $s;
+		return file_get_contents($srcfile);
 	}
 	
 	// 如果有 overwrite，则用 overwrite 替换掉
@@ -592,7 +616,7 @@ function plugin_compile_srcfile($srcfile) {
 	
 	// 最多支持 10 层
 	for($i = 0; $i < 10; $i++) {
-		if(strpos($s, '<!--{hook') !== FALSE || strpos($s, '// hook') !== FALSE) {
+		if(strpos($s, '<!--{hook') !== false || strpos($s, '// hook') !== false) {
 			$s = preg_replace('#<!--{hook\s+(.*?)}-->#', '// hook \\1', $s);
 			// hook 名只允许字母/数字/下划线/点/短横线，避免注释里 `// hook 位于...` 被误识别
 			// ponytail: 旧正则 \S+ 贪婪匹配中文，导致注释行被当 hook 名截断引发 ParseError；合法 hook 文件名均符合 [\w.\-]+
@@ -607,8 +631,6 @@ function plugin_compile_srcfile($srcfile) {
 
 // 只返回一个权重最高的文件名
 function plugin_find_overwrite($srcfile) {
-	//$plugin_paths = glob(APP_PATH.'plugin/*', GLOB_ONLYDIR);
-
 	$plugin_paths = plugin_paths_enabled();
 
 	$len = strlen(APP_PATH);
@@ -655,8 +677,6 @@ function plugin_compile_srcfile_callback($m) {
 	if(empty($hooks)) {
 		$hooks = array();
 		$plugin_paths = plugin_paths_enabled();
-		
-		//$plugin_paths = glob(APP_PATH.'plugin/*', GLOB_ONLYDIR);
 		foreach($plugin_paths as $path=>$pconf) {
 			$dir = file_name($path);
 			$hookpaths = glob(APP_PATH."plugin/$dir/hook/*.*"); // path
@@ -705,12 +725,14 @@ function plugin_compile_srcfile_callback($m) {
 				// 检查是否只包含 $lang['key']='value' 赋值语句
 				// 允许的格式：$lang['xxx'] = 'yyy'; 或 $lang["xxx"] = 'yyy';
 				$lines = array_filter(array_map('trim', explode("\n", $t)));
-				$all_valid = TRUE;
+				$all_valid = true;
 				foreach($lines as $line) {
-					if($line === '' || $line === '<?php' || preg_match('#^//.*$#', $line)) continue;
+					if($line === '' || $line === '<?php' || preg_match('#^//.*$#', $line)) {
+					continue;
+				}
 					if(!preg_match('#^\$lang\[\'[^\']+\'\]\s*=\s*.*;$#', $line) &&
 					   !preg_match('#^\$lang\["[^"]+"\]\s*=\s*.*;$#', $line)) {
-						$all_valid = FALSE;
+						$all_valid = false;
 						break;
 					}
 				}
@@ -746,7 +768,9 @@ function plugin_read_by_dir($dir) {
 	global $plugins;
 
 	$local = array_value($plugins, $dir, array());
-	if(empty($local)) return array();
+	if(empty($local)) {
+			return array();
+		}
 
 	!isset($local['name']) && $local['name'] = '';
 	!isset($local['price']) && $local['price'] = 0;
@@ -937,24 +961,32 @@ function plugin_read_by_dir_with_db($dir) {
  * @param string $hookname hook 名称（含扩展名，如 thread_create_after.php）
  * @param mixed $data 传递给 hook 的引用数据（可选）
  */
-function plugin_hook($hookname, &$data = NULL) {
+function plugin_hook($hookname, &$data = null) {
 	global $conf;
-	if(empty($hookname)) return;
+	if(empty($hookname)) {
+			return;
+		}
 
 	// 收集所有已启用插件中匹配 hookname 的 hook 文件，按 hooks_rank 降序
 	// 使用 plugin_paths_enabled() 直接读 conf.json，兼容前端运行时（plugin_init 仅在 admin/upgrade 调用）
 	$plugin_paths = plugin_paths_enabled();
-	if(empty($plugin_paths)) return;
+	if(empty($plugin_paths)) {
+			return;
+		}
 
 	$hookfiles = array();
 	foreach($plugin_paths as $path => $pconf) {
 		$dir = file_name($path);
 		$hookpath = APP_PATH . "plugin/$dir/hook/$hookname";
-		if(!is_file($hookpath)) continue;
+		if(!is_file($hookpath)) {
+				continue;
+			}
 		$rank = isset($pconf['hooks_rank'][$hookname]) ? $pconf['hooks_rank'][$hookname] : 0;
 		$hookfiles[] = array('path' => $hookpath, 'rank' => $rank, 'dir' => $dir);
 	}
-	if(empty($hookfiles)) return;
+	if(empty($hookfiles)) {
+			return;
+		}
 
 	// 按 rank 降序（与编译时 plugin_compile_srcfile_callback 排序一致）
 	usort($hookfiles, function($a, $b) {
@@ -965,7 +997,9 @@ function plugin_hook($hookname, &$data = NULL) {
 		// 错误隔离：单 hook 出错不影响其他 hook 和主流程
 		try {
 			$t = file_get_contents($hf['path']);
-			if($t === FALSE) continue;
+			if($t === false) {
+				continue;
+			}
 			// 去掉防直接访问前缀，与编译时 plugin_compile_srcfile_callback 处理一致
 			// hook 文件以 <?php exit; 开头，include 会终止执行，故剥离标签后 eval
 			if(preg_match('#^\s*<\?php\s+exit;#is', $t)) {
@@ -987,7 +1021,7 @@ function plugin_hook($hookname, &$data = NULL) {
 		if (is_array($data)) {
 			extract($data, EXTR_SKIP);
 		}
-		eval($t);
+		eval($t); // NOSONAR
 		} catch(\Throwable $e) {
 			// PHP 7+ Throwable 兼容 Error 和 Exception
 			$msg = "Plugin hook error: $hookname in plugin " . $hf['dir'] . ": " . $e->getMessage();
@@ -1003,7 +1037,7 @@ function plugin_hook($hookname, &$data = NULL) {
  * 兼容旧版 xn_hook() 调用
  * @deprecated 已被 plugin_hook() 替代，仅为向后兼容保留
  */
-function xn_hook($hookname, &$data = NULL) {
+function xn_hook($hookname, &$data = null) {
 	// 旧版 xn_hook 不带 .php 后缀，新版 plugin_hook 需要含扩展名（如 thread_create_after.php）
 	// 幂等：调用方无论是否带 .php 后缀都能正确分发
 	if(substr($hookname, -4) !== '.php') {
@@ -1011,5 +1045,3 @@ function xn_hook($hookname, &$data = NULL) {
 	}
 	return plugin_hook($hookname, $data);
 }
-
-?>
