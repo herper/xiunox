@@ -39,28 +39,9 @@ function _atomic_write($file, $s) {
 
 function _include($srcfile) {
 	global $conf;
-	// 纵深防御：只编译应用目录（APP_PATH）内的源码文件
-	// 合法调用方均以 APP_PATH 常量拼接路径（含 ADMIN_PATH/XIUNOPHP_PATH），此处校验拒绝路径穿越/外部路径
-	$real_app = realpath(APP_PATH);
-	$real_src = realpath($srcfile);
-	if($real_app === FALSE || $real_src === FALSE || strncasecmp($real_src, $real_app.DIRECTORY_SEPARATOR, strlen($real_app) + 1) !== 0) {
-		xn_log("_include() refused path outside APP_PATH: $srcfile", 'include_security_error');
-		die('_include(): invalid source path');
-	}
 	$len = strlen(APP_PATH);
 	$tmpfile = $conf['tmp_path'].substr(str_replace('/', '_', $srcfile), $len);
-	$_need_compile = !is_file($tmpfile) || DEBUG > 1 || !empty($conf['cache_disable']);
-	// 源码文件比编译缓存新时重新编译
-	// 避免修改模板/模型文件后必须手动清理缓存（后台「清理缓存」或删除 tmp/）才能生效
-	if(!$_need_compile && is_file($srcfile)) {
-		// NOSONAR: 上方已用 realpath+APP_PATH 前缀校验确认路径在应用目录内，filemtime 仅为元数据读取
-		$_src_mtime = @filemtime($srcfile); // NOSONAR
-		$_tmp_mtime = @filemtime($tmpfile); // NOSONAR
-		if($_src_mtime > $_tmp_mtime) {
-			$_need_compile = true;
-		}
-	}
-	if($_need_compile) {
+	if(!is_file($tmpfile) || DEBUG > 1 || !empty($conf['cache_disable'])) {
 		// 开始编译
 		$s = plugin_compile_srcfile($srcfile);
 
