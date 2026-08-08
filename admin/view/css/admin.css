@@ -29,7 +29,7 @@ a:hover {
     border: none;
 }
 
-/* ===== nav-tabs active 妞渾鎸囩ず鏉?===== */
+/* ===== nav-tabs active 椭圆指示条 ===== */
 .nav-tabs .nav-link {
     position: relative;
 }
@@ -50,7 +50,7 @@ a:hover {
     transform: translateX(-50%) scaleX(1);
 }
 
-/* 瀵艰埅Tab妯悜婊氬姩锛堢Щ鍔ㄧ涓嶆崲琛岋紝鍙乏鍙虫粦鍔級 */
+/* 导航Tab横向滚动（移动端不换行，可左右滑动） */
 .nav-tabs-scroll {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -108,7 +108,7 @@ tbody, td, tfoot, th, thead, tr {
     border-radius: var(--bs-border-radius);
 }
 
-/* pagination-boxed: 莽鈥孤€姑︹€撀姑ヂ濃€斆ε掆€懊┾€櫬寂捗︹€斅犆颗久ε铰ッ韭姑β♀€?*/
+/* pagination-boxed: 独立方块按钮，无连接边框 */
 .pagination-boxed {
     gap: 4px;
 }
@@ -404,7 +404,7 @@ tbody, td, tfoot, th, thead, tr {
     background: rgba(37, 99, 235, 0.15) !important;
 }
 
-/* 琛ㄦ牸鏈€灏忓搴︼紙閰嶅悎 table-responsive 瀹炵幇绉诲姩绔í鍚戞粴鍔紝闃叉鍒楀帇缂╀笉鍙锛?*/
+/* 表格最小宽度（配合 table-responsive 实现移动端横向滚动，防止列压缩不可读） */
 .table-responsive .table-min-w-sm { min-width: 576px; }
 .table-responsive .table-min-w-md { min-width: 768px; }
 .table-responsive .table-min-w-lg { min-width: 992px; }
